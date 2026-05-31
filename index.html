@@ -88,6 +88,12 @@ let pointerAngle=0;
 
 let particles=[];
 
+let tapCount = 0;
+
+const MAX_TAPS = 5;
+
+let inputLocked = false;
+
 let lastInputTime = 0;
 
 
@@ -243,17 +249,18 @@ function judge(){
 
 function handleInput(){
 
-    const now = performance.now();
-
-    // クールダウン中なら無視
-    if(now - lastInputTime < SETTINGS.inputCooldown){
+    if(inputLocked){
+        return.textContent = "STOP";
         return;
     }
 
-    lastInputTime = now;
+    tapCount++;
+
+    if(tapCount >= MAX_TAPS){
+        inputLocked = true;
+    }
 
     judge();
-
     randomizeZone();
 }
 
