@@ -2,17 +2,18 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>円形タイミング入力</title>
+<title>DBD風 修理ゲージ + タイミングイベント</title>
 
 <style>
+
 body{
     margin:0;
     background:#111;
+    overflow:hidden;
     display:flex;
     justify-content:center;
     align-items:center;
     height:100vh;
-    overflow:hidden;
     color:white;
     font-family:sans-serif;
 }
@@ -27,93 +28,196 @@ canvas{
     font-size:42px;
     font-weight:bold;
 }
+
 </style>
 </head>
+
 <body>
 
-<div id="result">タップ！</div>
+<div id="result"></div>
+
 <canvas id="game" width="700" height="700"></canvas>
 
 <script>
 
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
-const SE = {
-    perfect:new Audio(
-        "sounds/perfect.mp3"
-    ),
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
 
-    good:new Audio(
-        "sounds/good.mp3"
-    ),
+const result=document.getElementById("result");
 
-    miss:new Audio(
-        "sounds/miss.mp3"
-    ),
+// ===== 効果音音量 =====
+
+const PERFECT_VOLUME = 1.0;
+
+const GOOD_VOLUME = 1.0;
+
+const MISS_VOLUME = 1.0;
+
+const SE={
+
+perfect:new Audio(
+    "sounds/perfect.mp3"
+),
+
+good:new Audio(
+    "sounds/good.mp3"
+),
+
+miss:new Audio(
+    "sounds/miss.mp3"
+),
+
 };
+
+// 音量設定
+SE.perfect.volume=PERFECT_VOLUME;
+
+SE.good.volume=GOOD_VOLUME;
+
+SE.miss.volume=MISS_VOLUME;
 
 function playSE(name){
 
     SE[name].currentTime=0;
-
     SE[name].play();
+
 }
 
-const result = document.getElementById("result");
+const centerX=canvas.width/2;
+const centerY=canvas.height/2;
+const radius=220;
 
-const centerX = canvas.width/2;
-const centerY = canvas.height/2;
-const radius = 220;
-
-// ===== 調整用設定 =====
-
-let SETTINGS = {
+let SETTINGS={
 
     clockwise:true,
 
-    // 1秒あたりの回転角度
     rotationSpeed:360,
 
     zoneStart:45,
 
     normalWidth:55,
 
-    perfectWidth:15,
+    perfectWidth:15
 
-    //入力受付インターバル(ms)
-    inputCooldown:250
 };
 
 let pointerAngle=0;
 
 let particles=[];
 
-let tapCount = 0;
+/* =========================
+   修理ゲージ設定
+========================= */
 
-const MAX_TAPS = 5;
+let repairProgress=0;
 
-let inputLocked = false;
+const averageFiveEventTime=45;
 
-let lastInputTime = 0;
+const repairSpeed=(100*(5/6))/averageFiveEventTime;
 
+const perfectBonus=5;
 
-// =======================
+const missPenalty=5;
+
+const EVENT_INTERVAL_MIN = 2;
+
+const EVENT_INTERVAL_MAX = 6;
+
+/* =========================
+   イベント管理
+========================= */
+
+let timingActive=false;
+
+let gameFinished=false;
+
+let resultFreeze=false;
+
+let eventCooldown=0;
+
+let resultTimer=0;
+
+let nextEventTime=randomEventInterval();
+
+function randomEventInterval(){
+
+    return EVENT_INTERVAL_MIN
+        + Math.random()
+        * (
+            EVENT_INTERVAL_MAX
+            - EVENT_INTERVAL_MIN
+        );
+
+}
+
+function randomPointerSpeed(){
+
+    return 180 + Math.random()*360;
+
+}
+
+function startTimingEvent(){
+
+    if(
+    timingActive
+    || gameFinished
+    ) return;
+
+    timingActive=true;
+
+    resultFreeze=false;
+
+    result.textContent="";
+
+    pointerAngle=Math.random()*360;
+
+    SETTINGS.zoneStart=Math.random()*360;
+
+    SETTINGS.rotationSpeed=randomPointerSpeed();
+
+}
+
+function endTimingEvent(){
+
+    timingActive=false;
+
+    result.textContent="";
+
+    eventCooldown=1.2;
+
+    nextEventTime=randomEventInterval();
+
+}
+
+function normalize(a){
+
+    return (a+360)%360;
+
+}
+
+function inRange(angle,start,end){
+
+    angle=normalize(angle);
+    start=normalize(start);
+    end=normalize(end);
+
+    if(start<=end){
+
+        return angle>=start && angle<=end;
+
+    }
+
+    return angle>=start || angle<=end;
+
+}
 
 function spawnEffect(type){
 
     let color="white";
 
-    if(type==="perfect"){
-        color="gold";
-    }
-
-    if(type==="good"){
-        color="lime";
-    }
-
-    if(type==="miss"){
-        color="red";
-    }
+    if(type==="perfect") color="gold";
+    if(type==="good") color="lime";
+    if(type==="miss") color="red";
 
     for(let i=0;i<25;i++){
 
@@ -123,14 +227,163 @@ function spawnEffect(type){
             y:centerY,
 
             vx:(Math.random()-0.5)*12,
-
             vy:(Math.random()-0.5)*12,
 
             life:40,
 
             color:color
+
         });
+
     }
+
+}
+
+/* =========================
+   判定
+========================= */
+
+function judge(){
+
+    const p=normalize(pointerAngle);
+
+    let perfectStart;
+    let perfectEnd;
+    let normalEnd;
+
+    if(SETTINGS.clockwise){
+
+        perfectStart=SETTINGS.zoneStart;
+        perfectEnd=SETTINGS.zoneStart+SETTINGS.perfectWidth;
+        normalEnd=SETTINGS.zoneStart+SETTINGS.normalWidth;
+
+    }
+    else{
+
+        perfectStart=
+            SETTINGS.zoneStart
+            - SETTINGS.perfectWidth;
+
+        perfectEnd=
+            SETTINGS.zoneStart;
+
+        normalEnd=
+            SETTINGS.zoneStart
+            - SETTINGS.normalWidth;
+
+    }
+
+    if(inRange(p,perfectStart,perfectEnd)){
+
+        result.textContent="PERFECT";
+
+        playSE("perfect");
+
+        spawnEffect("perfect");
+
+        repairProgress+=perfectBonus;
+
+        if(repairProgress>100)
+            repairProgress=100;
+
+    }
+    else if(
+        inRange(
+            p,
+            SETTINGS.zoneStart,
+            normalEnd
+        )
+    ){
+
+        result.textContent="GOOD";
+
+        playSE("good");
+
+        spawnEffect("good");
+
+    }
+    else{
+
+        result.textContent="MISS";
+
+        playSE("miss");
+
+        spawnEffect("miss");
+
+        repairProgress-=missPenalty;
+
+        if(repairProgress<0)
+            repairProgress=0;
+
+    }
+
+    resultFreeze=true;
+    
+    resultTimer=1;
+
+}
+
+/* =========================
+   入力
+========================= */
+
+function handleInput(){
+
+    if(!timingActive) return;
+
+    if(resultFreeze) return;
+
+    judge();
+
+}
+
+document.addEventListener("keydown",(e)=>{
+
+    if(e.code==="Space"){
+
+        e.preventDefault();
+
+        handleInput();
+
+    }
+
+});
+
+document.addEventListener("pointerdown",(e)=>{
+
+    e.preventDefault();
+
+    handleInput();
+
+});
+
+/* =========================
+   描画
+========================= */
+
+function drawArc(
+    start,
+    width,
+    color,
+    lineWidth=28
+){
+
+    ctx.beginPath();
+
+    ctx.strokeStyle=color;
+
+    ctx.lineWidth=lineWidth;
+
+    ctx.arc(
+        centerX,
+        centerY,
+        radius,
+        (start-90)*Math.PI/180,
+        (start+width-90)*Math.PI/180
+    );
+
+    ctx.stroke();
+
 }
 
 function drawParticles(){
@@ -166,224 +419,295 @@ function drawParticles(){
         particles.filter(
             p=>p.life>0
         );
-}
 
-function randomizeZone(){
-
-    SETTINGS.zoneStart =
-        Math.random()*360;
-
-}
-
-
-function normalize(a){
-    return (a+360)%360;
-}
-
-function inRange(angle,start,end){
-
-    angle=normalize(angle);
-    start=normalize(start);
-    end=normalize(end);
-
-    if(start<=end){
-        return angle>=start && angle<=end;
-    }
-
-    return angle>=start || angle<=end;
-}
-
-function judge(){
-
-    const p = normalize(pointerAngle);
-
-    let perfectStart;
-    let perfectEnd;
-    let normalEnd;
-
-    if(SETTINGS.clockwise){
-
-        perfectStart = SETTINGS.zoneStart;
-        perfectEnd = SETTINGS.zoneStart + SETTINGS.perfectWidth;
-        normalEnd = SETTINGS.zoneStart + SETTINGS.normalWidth;
-
-    }else{
-
-        perfectStart = SETTINGS.zoneStart - SETTINGS.perfectWidth;
-        perfectEnd = SETTINGS.zoneStart;
-        normalEnd = SETTINGS.zoneStart - SETTINGS.normalWidth;
-
-    }
-
-    if(inRange(p,perfectStart,perfectEnd)){
-
-        result.textContent="PERFECT";
-
-        playSE("perfect");
-
-        spawnEffect("perfect");
-
-    }else if(
-        inRange(
-            p,
-            SETTINGS.zoneStart,
-            normalEnd
-        )
-    ){
-
-        result.textContent="GOOD";
-        
-        playSE("good");
-
-        spawnEffect("good");
-
-    }else{
-
-        result.textContent="MISS";
-        
-        playSE("miss");
-
-        spawnEffect("miss");
-    }
-}
-
-function handleInput(){
-
-    if(inputLocked){
-        return.textContent = "STOP";
-        return;
-    }
-
-    tapCount++;
-
-    if(tapCount >= MAX_TAPS){
-        inputLocked = true;
-    }
-
-    judge();
-    randomizeZone();
-}
-
-
-// キーボード
-document.addEventListener("keydown",(e)=>{
-
-    if(e.code==="Space"){
-
-        e.preventDefault();
-
-        handleInput();
-    }
-
-});
-
-
-// マウス・スマホ共通入力
-document.addEventListener("pointerdown",(e)=>{
-
-    e.preventDefault();
-
-    handleInput();
-
-});
-
-function drawArc(start,width,color,lineWidth=28){
-
-    ctx.beginPath();
-
-    ctx.strokeStyle=color;
-    ctx.lineWidth=lineWidth;
-
-    ctx.arc(
-        centerX,
-        centerY,
-        radius,
-        (start-90)*Math.PI/180,
-        (start+width-90)*Math.PI/180
-    );
-
-    ctx.stroke();
 }
 
 function draw(){
 
-    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.clearRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
 
-    // 外周
-    ctx.beginPath();
-    ctx.strokeStyle="#444";
-    ctx.lineWidth=12;
+    /* 修理ゲージ */
 
-    ctx.arc(centerX,centerY,radius,0,Math.PI*2);
+    ctx.fillStyle="#333";
 
-    ctx.stroke();
+    ctx.fillRect(
+        100,
+        620,
+        500,
+        28
+    );
 
-    // 判定帯
+    ctx.fillStyle="#3498db";
 
-    if(SETTINGS.clockwise){
+    ctx.fillRect(
+        100,
+        620,
+        500*(repairProgress/100),
+        28
+    );
 
-        drawArc(SETTINGS.zoneStart,SETTINGS.normalWidth,"#2ecc71");
+    ctx.strokeStyle="#888";
 
-        drawArc(SETTINGS.zoneStart,SETTINGS.perfectWidth,"#f1c40f",34);
+    ctx.lineWidth=3;
 
-    }else{
+    ctx.strokeRect(
+        100,
+        620,
+        500,
+        28
+    );
 
-        drawArc(SETTINGS.zoneStart-SETTINGS.normalWidth,SETTINGS.normalWidth,"#2ecc71");
+    /* イベント時のみ表示 */
 
-        drawArc(SETTINGS.zoneStart-SETTINGS.perfectWidth,SETTINGS.perfectWidth,"#f1c40f",34);
+    if(timingActive){
+
+        ctx.beginPath();
+
+        ctx.strokeStyle="#444";
+
+        ctx.lineWidth=12;
+
+        ctx.arc(
+            centerX,
+            centerY,
+            radius,
+            0,
+            Math.PI*2
+        );
+
+        ctx.stroke();
+
+        if(SETTINGS.clockwise){
+
+            drawArc(
+                SETTINGS.zoneStart,
+                SETTINGS.normalWidth,
+                "#2ecc71"
+            );
+
+            drawArc(
+                SETTINGS.zoneStart,
+                SETTINGS.perfectWidth,
+                "#f1c40f",
+                34
+            );
+
+        }
+        else{
+
+            drawArc(
+                SETTINGS.zoneStart
+                - SETTINGS.normalWidth,
+
+                SETTINGS.normalWidth,
+
+                "#2ecc71"
+            );
+
+            drawArc(
+                SETTINGS.zoneStart
+                - SETTINGS.perfectWidth,
+
+                SETTINGS.perfectWidth,
+
+                "#f1c40f",
+
+                34
+            );
+
+        }
+
+        const rad=
+            (pointerAngle-90)
+            *Math.PI/180;
+
+        const x=
+            centerX
+            +Math.cos(rad)*radius;
+
+        const y=
+            centerY
+            +Math.sin(rad)*radius;
+
+        ctx.beginPath();
+
+        ctx.strokeStyle="red";
+
+        ctx.lineWidth=6;
+
+        ctx.moveTo(
+            centerX,
+            centerY
+        );
+
+        ctx.lineTo(
+            x,
+            y
+        );
+
+        ctx.stroke();
 
     }
 
-    // ポインター
-
-    const rad=(pointerAngle-90)*Math.PI/180;
-
-    const x=centerX+Math.cos(rad)*radius;
-    const y=centerY+Math.sin(rad)*radius;
-
-    ctx.beginPath();
-
-    ctx.strokeStyle="red";
-    ctx.lineWidth=6;
-
-    ctx.moveTo(centerX,centerY);
-    ctx.lineTo(x,y);
-
-    ctx.stroke();
-
-
     drawParticles();
+
+    if(gameFinished){
+
+    ctx.fillStyle="white";
+
+    ctx.font="64px sans-serif";
+
+    ctx.textAlign="center";
+
+    ctx.fillText(
+        "終了",
+        centerX,
+        120
+    );
+
 }
 
-let lastTime=performance.now();
+}
+
+/* =========================
+   更新
+========================= */
+
+let lastTime=
+    performance.now();
+
+let elapsedTime=0;
 
 function update(now){
 
-    const deltaTime=(now-lastTime)/1000;
+    const deltaTime=
+        (now-lastTime)/1000;
 
     lastTime=now;
 
-    if(SETTINGS.clockwise){
+    elapsedTime+=deltaTime;
 
-        pointerAngle +=
-            SETTINGS.rotationSpeed
-            * deltaTime;
+    /* 通常修理 */
 
-    }else{
+    if(
+    !gameFinished
+    &&
+    (
+        !timingActive
+        ||
+        resultFreeze
+    )
+){
 
-        pointerAngle -=
-            SETTINGS.rotationSpeed
-            * deltaTime;
+    repairProgress+=
+        repairSpeed
+        *deltaTime;
+
+    if(repairProgress>=100){
+
+    repairProgress=100;
+
+    gameFinished=true;
+
+    timingActive=false;
+
+    result.textContent="";
+
+}
+
+}
+
+    if(repairProgress>100)
+        repairProgress=100;
+
+    /* イベントクールダウン */
+
+    if(eventCooldown>0){
+
+        eventCooldown-=deltaTime;
+
     }
 
-    pointerAngle=normalize(pointerAngle);
+    /* ランダムイベント */
+
+    if(
+        !timingActive
+        &&
+        eventCooldown<=0
+    ){
+
+        nextEventTime-=deltaTime;
+
+        if(nextEventTime<=0){
+
+            startTimingEvent();
+
+        }
+
+    }
+
+    /* ポインター回転 */
+
+    if(
+        timingActive
+        &&
+        !resultFreeze
+    ){
+
+        if(SETTINGS.clockwise){
+
+            pointerAngle+=
+                SETTINGS.rotationSpeed
+                *deltaTime;
+
+        }
+        else{
+
+            pointerAngle-=
+                SETTINGS.rotationSpeed
+                *deltaTime;
+
+        }
+
+        pointerAngle=
+            normalize(
+                pointerAngle
+            );
+
+    }
+
+    /* 判定保持1秒 */
+
+    if(resultFreeze){
+
+    resultTimer-=deltaTime;
+
+    if(resultTimer<=0){
+
+        resultFreeze=false;
+
+        endTimingEvent();
+
+    }
+
+}
 
     draw();
 
-    requestAnimationFrame(update);
+    requestAnimationFrame(
+        update
+    );
+
 }
 
-requestAnimationFrame(update);
+requestAnimationFrame(
+    update
+);
 
 </script>
 </body>
