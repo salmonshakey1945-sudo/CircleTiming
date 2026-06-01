@@ -53,6 +53,8 @@ const GOOD_VOLUME = 1.0;
 
 const MISS_VOLUME = 1.0;
 
+const START_VOLUME = 1.0;
+
 const SE={
 
 perfect:new Audio(
@@ -67,6 +69,10 @@ miss:new Audio(
     "sounds/miss.mp3"
 ),
 
+start:new Audio(
+    "sounds/start.mp3"
+)
+
 };
 
 // 音量設定
@@ -75,6 +81,8 @@ SE.perfect.volume=PERFECT_VOLUME;
 SE.good.volume=GOOD_VOLUME;
 
 SE.miss.volume=MISS_VOLUME;
+
+SE.start.volume=START_VOLUME;
 
 function playSE(name){
 
@@ -164,6 +172,8 @@ function startTimingEvent(){
     ) return;
 
     timingActive=true;
+
+    playSE("start");
 
     resultFreeze=false;
 
