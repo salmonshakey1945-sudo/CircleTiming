@@ -84,6 +84,28 @@ SE.miss.volume=MISS_VOLUME;
 
 SE.start.volume=START_VOLUME;
 
+function unlockAudio(){
+
+    if(audioUnlocked) return;
+
+    audioUnlocked=true;
+
+    Object.values(SE).forEach(audio=>{
+
+        audio.play()
+            .then(()=>{
+
+                audio.pause();
+
+                audio.currentTime=0;
+
+            })
+            .catch(()=>{});
+
+    });
+
+}
+
 function playSE(name){
 
     SE[name].currentTime=0;
@@ -139,6 +161,10 @@ let timingActive=false;
 
 let gameFinished=false;
 
+let electricityActive=false;
+
+let electricityTimer=0;
+
 let resultFreeze=false;
 
 let eventCooldown=0;
@@ -146,6 +172,8 @@ let eventCooldown=0;
 let resultTimer=0;
 
 let nextEventTime=randomEventInterval();
+
+let audioUnlocked=false;
 
 function randomEventInterval(){
 
@@ -165,11 +193,12 @@ function randomPointerSpeed(){
 }
 
 function startTimingEvent(){
-
+    
     if(
     timingActive
     || gameFinished
-    ) return;
+    || electricityActive
+) return;
 
     timingActive=true;
 
@@ -353,17 +382,23 @@ document.addEventListener("keydown",(e)=>{
 
         e.preventDefault();
 
+        unlockAudio();
+
         handleInput();
 
     }
 
 });
 
-document.addEventListener("pointerdown",(e)=>{
+document.addEventListener(
+    "pointerdown",
+    (e)=>{
 
-    e.preventDefault();
+        e.preventDefault();
 
-    handleInput();
+        unlockAudio();
+
+        handleInput();
 
 });
 
@@ -566,6 +601,48 @@ function draw(){
 
     drawParticles();
 
+    if(electricityActive){
+
+    for(let i=0;i<12;i++){
+
+        ctx.strokeStyle=
+            `rgba(
+                255,
+                230,
+                80,
+                ${Math.random()}
+            )`;
+
+        ctx.lineWidth=4;
+
+        ctx.beginPath();
+
+        let startX=
+            Math.random()*canvas.width;
+
+        let startY=
+            Math.random()*canvas.height;
+
+        ctx.moveTo(startX,startY);
+
+        for(let j=0;j<6;j++){
+
+            startX+=
+                (Math.random()-0.5)*80;
+
+            startY+=
+                (Math.random()-0.5)*80;
+
+            ctx.lineTo(startX,startY);
+
+        }
+
+        ctx.stroke();
+
+    }
+
+}
+
     if(gameFinished){
 
     ctx.fillStyle="white";
@@ -618,15 +695,23 @@ function update(now){
         repairSpeed
         *deltaTime;
 
-    if(repairProgress>=100){
+   if(
+    repairProgress>=100
+    &&
+    !electricityActive
+    &&
+    !gameFinished
+){
 
     repairProgress=100;
-
-    gameFinished=true;
 
     timingActive=false;
 
     result.textContent="";
+
+    electricityActive=true;
+
+    electricityTimer=1.5;
 
 }
 
@@ -702,6 +787,20 @@ function update(now){
         resultFreeze=false;
 
         endTimingEvent();
+
+    }
+
+}
+
+if(electricityActive){
+
+    electricityTimer-=deltaTime;
+
+    if(electricityTimer<=0){
+
+        electricityActive=false;
+
+        gameFinished=true;
 
     }
 
