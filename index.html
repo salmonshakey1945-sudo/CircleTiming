@@ -369,8 +369,21 @@ function judge(){
 
         repairProgress+=perfectBonus;
 
-        if(repairProgress>100)
-            repairProgress=100;
+if(repairProgress>=100){
+
+    repairProgress=100;
+
+    timingActive=false;
+    resultFreeze=false;
+    result.textContent="";
+
+    maxSoundPending=true;
+    maxSoundFinished=false;
+
+    playSE("max");
+
+    return;
+}
 
     }
     else if(
@@ -403,9 +416,13 @@ function judge(){
 
     }
 
-    resultFreeze=true;
-    
-    resultTimer=1;
+    if(maxSoundPending){
+    return;
+}
+
+resultFreeze=true;
+
+resultTimer=1;
 
 }
 
