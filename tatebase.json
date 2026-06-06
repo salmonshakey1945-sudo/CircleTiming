@@ -1,5 +1,17 @@
 {
   "room1": {
     "reset": false
+  },
+  "room2": {
+    "reset": false
+  },
+  "room3": {
+    "reset": false
+  },
+  "room4": {
+    "reset": false
+  },
+  "room5": {
+    "reset": false
   }
 }

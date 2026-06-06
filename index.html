@@ -64,6 +64,11 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
+const room =
+    new URLSearchParams(
+        location.search
+    ).get("room") || "1";
+
 const canvas=document.getElementById("game");
 const ctx=canvas.getContext("2d");
 
@@ -958,7 +963,7 @@ if(electricityActive){
 }
 
 onValue(
-    ref(db,"room1/reset"),
+    ref(db,`room${room}/reset`),
     (snapshot)=>{
 
         if(snapshot.val()===true){
@@ -966,7 +971,7 @@ onValue(
             resetGame();
 
             set(
-                ref(db,"room1/reset"),
+                ref(db,`room${room}/reset`),
                 false
             );
 
