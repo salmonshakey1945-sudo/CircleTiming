@@ -38,7 +38,31 @@ canvas{
 
 <canvas id="game" width="700" height="700"></canvas>
 
-<script>
+<script type="module">
+
+    import { initializeApp }
+from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+
+import {
+    getDatabase,
+    ref,
+    onValue,
+    set
+}
+from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAK-KCZuRx0UJTkwM8gXzjtK_-7b6pm6R4",
+  authDomain: "circletiming-b09f7.firebaseapp.com",
+  databaseURL: "https://circletiming-b09f7-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "circletiming-b09f7",
+  storageBucket: "circletiming-b09f7.firebasestorage.app",
+  messagingSenderId: "998413886850",
+  appId: "1:998413886850:web:465720573ba614d6e95b9b"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
 
 const canvas=document.getElementById("game");
 const ctx=canvas.getContext("2d");
@@ -54,6 +78,8 @@ const GOOD_VOLUME = 1.0;
 const MISS_VOLUME = 1.0;
 
 const START_VOLUME = 1.0;
+
+const MAX_VOLUME = 1.0;
 
 const SE={
 
@@ -71,6 +97,10 @@ miss:new Audio(
 
 start:new Audio(
     "sounds/start.mp3"
+),
+
+max:new Audio(
+    "sounds/max.mp3"
 )
 
 };
@@ -84,25 +114,23 @@ SE.miss.volume=MISS_VOLUME;
 
 SE.start.volume=START_VOLUME;
 
+SE.max.volume=MAX_VOLUME;
+
 function unlockAudio(){
 
     if(audioUnlocked) return;
 
     audioUnlocked=true;
 
-    Object.values(SE).forEach(audio=>{
+}
 
-        audio.play()
-            .then(()=>{
+function startGame(){
 
-                audio.pause();
+    if(gameStarted) return;
 
-                audio.currentTime=0;
+    unlockAudio();
 
-            })
-            .catch(()=>{});
-
-    });
+    gameStarted=true;
 
 }
 
@@ -161,6 +189,8 @@ let timingActive=false;
 
 let gameFinished=false;
 
+let gameStarted=false;
+
 let electricityActive=false;
 
 let electricityTimer=0;
@@ -174,6 +204,16 @@ let resultTimer=0;
 let nextEventTime=randomEventInterval();
 
 let audioUnlocked=false;
+
+let maxSoundPending=false;
+
+let maxSoundFinished=false;
+
+SE.max.addEventListener("ended",()=>{
+
+    maxSoundFinished=true;
+
+});
 
 function randomEventInterval(){
 
@@ -193,12 +233,14 @@ function randomPointerSpeed(){
 }
 
 function startTimingEvent(){
-    
+
     if(
-    timingActive
-    || gameFinished
-    || electricityActive
-) return;
+        timingActive
+        || gameFinished
+        || electricityActive
+        || maxSoundPending
+        || repairProgress >= 100
+    ) return;
 
     timingActive=true;
 
@@ -382,7 +424,13 @@ document.addEventListener("keydown",(e)=>{
 
         e.preventDefault();
 
-        unlockAudio();
+        if(!gameStarted){
+
+            startGame();
+
+            return;
+
+        }
 
         handleInput();
 
@@ -396,7 +444,13 @@ document.addEventListener(
 
         e.preventDefault();
 
-        unlockAudio();
+        if(!gameStarted){
+
+            startGame();
+
+            return;
+
+        }
 
         handleInput();
 
@@ -659,6 +713,39 @@ function draw(){
 
 }
 
+if(gameFinished){
+
+    ctx.fillStyle="white";
+
+    ctx.font="64px sans-serif";
+
+    ctx.textAlign="center";
+
+    ctx.fillText(
+        "終了",
+        centerX,
+        120
+    );
+
+}
+
+
+if(!gameStarted){
+
+    ctx.fillStyle="white";
+
+    ctx.font="48px sans-serif";
+
+    ctx.textAlign="center";
+
+    ctx.fillText(
+        "タップして開始",
+        centerX,
+        centerY
+    );
+
+}
+
 }
 
 /* =========================
@@ -682,6 +769,8 @@ function update(now){
     /* 通常修理 */
 
     if(
+    gameStarted
+    &&
     !gameFinished
     &&
     (
@@ -701,17 +790,21 @@ function update(now){
     !electricityActive
     &&
     !gameFinished
+    &&
+    !maxSoundPending
 ){
 
     repairProgress=100;
 
     timingActive=false;
-
+    resultFreeze=false;
     result.textContent="";
 
-    electricityActive=true;
+    maxSoundPending=true;
 
-    electricityTimer=1.5;
+    maxSoundFinished=false;
+
+    playSE("max");
 
 }
 
@@ -730,21 +823,29 @@ function update(now){
 
     /* ランダムイベント */
 
-    if(
-        !timingActive
-        &&
-        eventCooldown<=0
-    ){
+    /* ランダムイベント */
 
-        nextEventTime-=deltaTime;
+if(
+    gameStarted
+    &&
+    !timingActive
+    &&
+    eventCooldown<=0
+    &&
+    !maxSoundPending
+    &&
+    repairProgress < 100
+){
 
-        if(nextEventTime<=0){
+    nextEventTime-=deltaTime;
 
-            startTimingEvent();
+    if(nextEventTime<=0){
 
-        }
+        startTimingEvent();
 
     }
+
+}
 
     /* ポインター回転 */
 
@@ -792,6 +893,20 @@ function update(now){
 
 }
 
+if(maxSoundPending && maxSoundFinished){
+
+    maxSoundPending=false;
+
+    timingActive=false;
+
+    result.textContent="";
+
+    electricityActive=true;
+
+    electricityTimer=1.5;
+
+}
+
 if(electricityActive){
 
     electricityTimer-=deltaTime;
@@ -807,6 +922,58 @@ if(electricityActive){
 }
 
     draw();
+
+    function resetGame(){
+
+    repairProgress=0;
+
+    timingActive=false;
+
+    gameFinished=false;
+
+    gameStarted=false;
+
+    electricityActive=false;
+
+    electricityTimer=0;
+
+    resultFreeze=false;
+
+    eventCooldown=0;
+
+    resultTimer=0;
+
+    nextEventTime=randomEventInterval();
+
+    pointerAngle=0;
+
+    particles=[];
+
+    maxSoundPending=false;
+
+    maxSoundFinished=false;
+
+    result.textContent="";
+
+}
+
+onValue(
+    ref(db,"room1/reset"),
+    (snapshot)=>{
+
+        if(snapshot.val()===true){
+
+            resetGame();
+
+            set(
+                ref(db,"room1/reset"),
+                false
+            );
+
+        }
+
+    }
+);
 
     requestAnimationFrame(
         update

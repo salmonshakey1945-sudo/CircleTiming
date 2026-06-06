@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>リセット管理画面</title>
+
+<style>
+
+body{
+    background:#111;
+    color:white;
+    font-family:sans-serif;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+    margin:0;
+}
+
+#container{
+    text-align:center;
+}
+
+button{
+    font-size:32px;
+    padding:20px 40px;
+    cursor:pointer;
+}
+
+#status{
+    margin-top:20px;
+    font-size:24px;
+}
+
+</style>
+</head>
+<body>
+
+<div id="container">
+
+    <button id="resetBtn">
+        リセット
+    </button>
+
+    <div id="status"></div>
+
+</div>
+
+<script type="module">
+
+import { initializeApp }
+from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+
+import {
+    getDatabase,
+    ref,
+    set
+}
+from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
+
+const firebaseConfig = {
+
+    apiKey: "あなたのapiKey",
+
+    authDomain:
+    "circletiming-b09f7.firebaseapp.com",
+
+    databaseURL:
+    "https://circletiming-b09f7-default-rtdb.asia-southeast1.firebasedatabase.app",
+
+    projectId:
+    "circletiming-b09f7",
+
+    storageBucket:
+    "circletiming-b09f7.firebasestorage.app",
+
+    messagingSenderId:
+    "998413886850",
+
+    appId:
+    "1:998413886850:web:465720573ba614d6e95b9b"
+
+};
+
+const app = initializeApp(firebaseConfig);
+
+const db = getDatabase(app);
+
+const status =
+    document.getElementById("status");
+
+document
+.getElementById("resetBtn")
+.addEventListener(
+    "click",
+    async ()=>{
+
+        try{
+
+            await set(
+                ref(db,"room1/reset"),
+                true
+            );
+
+            status.textContent =
+                "リセット送信完了";
+
+        }
+        catch(error){
+
+            status.textContent =
+                "エラー: "
+                + error.message;
+
+        }
+
+    }
+);
+
+</script>
+
+</body>
+</html>
