@@ -58,6 +58,8 @@ import {
 }
 from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
 
+let statusTimer;
+
 const firebaseConfig = {
 
     apiKey: "あなたのapiKey",
@@ -107,8 +109,16 @@ document
     true
 );
 
-            status.textContent =
-                "リセット送信完了";
+        status.textContent =
+    "リセット送信完了";
+
+clearTimeout(statusTimer);
+
+statusTimer=setTimeout(()=>{
+
+    status.textContent="";
+
+},2000);
 
         }
         catch(error){
