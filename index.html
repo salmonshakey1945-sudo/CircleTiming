@@ -25,8 +25,80 @@ canvas{
 #result{
     position:absolute;
     top:40px;
+    left:50%;
+    transform:translateX(-50%);
+
     font-size:42px;
     font-weight:bold;
+
+    text-align:center;
+}
+
+#roomSelect{
+    text-align:center;
+}
+
+#roomInfo{
+    position:absolute;
+    top:20px;
+    left:50%;
+    transform:translateX(-50%);
+    font-size:24px;
+}
+
+.roomRow{
+    display:flex;
+    align-items:center;
+    gap:20px;
+    margin:15px 0;
+}
+
+.roomBtn{
+    width:180px;
+    height:60px;
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+    background:white;
+    color:black;
+
+    border:none;
+
+    font-size:28px;
+
+    cursor:pointer;
+
+    transition:.2s;
+
+    box-sizing:border-box;
+}
+
+.roomBtn:hover{
+    filter:brightness(1.1);
+}
+
+.roomBtn.disabled{
+
+    background:#cfcfcf;
+
+    opacity:0.6;
+
+    cursor:not-allowed;
+
+    filter:none;
+
+}
+
+.roomInfo{
+
+    text-align:left;
+
+    font-size:18px;
+
+    min-width:180px;
+
 }
 
 </style>
@@ -34,9 +106,25 @@ canvas{
 
 <body>
 
-<div id="result"></div>
+<div id="roomSelect">
 
-<canvas id="game" width="700" height="700"></canvas>
+    <h1>Room選択</h1>
+
+    <div id="roomList"></div>
+
+</div>
+
+<div id="gameArea" style="display:none;">
+
+    <div id="roomInfo">
+    接続中 : -
+</div>
+
+    <div id="result"></div>
+
+    <canvas id="game" width="700" height="700"></canvas>
+
+</div>
 
 <script type="module">
 
@@ -47,7 +135,8 @@ import {
     getDatabase,
     ref,
     onValue,
-    set
+    set,
+    onDisconnect
 }
 from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
 
@@ -64,10 +153,166 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-const room =
-    new URLSearchParams(
-        location.search
-    ).get("room") || "1";
+const roomSelect =
+    document.getElementById("roomSelect");
+
+const roomList =
+    document.getElementById("roomList");
+
+const gameArea =
+    document.getElementById("gameArea");
+
+let room = "1";
+
+function createRoomList(rooms){
+
+    roomList.innerHTML="";
+
+    for(let i=1;i<=5;i++){
+
+        const roomName=`room${i}`;
+
+        const room=
+            rooms?.[roomName]
+            || {};
+
+        const admin=
+            room.adminConnected
+            ? "使用中"
+            : "空き";
+
+        const game=
+            room.gameConnected
+            ? "使用中"
+            : "空き";
+
+        const gameAvailable =
+            !room.gameConnected;
+
+        const row=
+            document.createElement("div");
+
+        row.className="roomRow";
+
+        const btn=
+            document.createElement("button");
+
+        btn.className="roomBtn";
+
+        btn.textContent=roomName;
+
+        if(!gameAvailable){
+
+            btn.disabled=true;
+
+            btn.classList.add(
+                "disabled"
+            );
+
+        }
+
+        btn.addEventListener(
+            "click",
+            ()=>{
+                selectRoom(roomName);
+            }
+        );
+
+        const info=
+            document.createElement("div");
+
+        info.className="roomInfo";
+
+        info.innerHTML=
+            `Admin ${admin}<br>
+             Game ${game}`;
+
+        row.appendChild(btn);
+
+        row.appendChild(info);
+
+        roomList.appendChild(row);
+
+    }
+
+}
+
+onValue(
+    ref(db,"rooms"),
+    snapshot=>{
+
+        createRoomList(
+            snapshot.val()
+        );
+
+    }
+);
+
+let currentRoom=null;
+
+async function selectRoom(roomName){
+
+    try{
+
+        await set(
+            ref(
+                db,
+                `rooms/${roomName}/gameConnected`
+            ),
+            true
+        );
+
+        onDisconnect(
+            ref(
+                db,
+                `rooms/${roomName}/gameConnected`
+            )
+        ).set(false);
+
+        currentRoom=
+            roomName.replace(
+                "room",
+                ""
+            );
+            room = currentRoom;
+
+            document.getElementById(
+    "roomInfo"
+).textContent=
+    `接続中 : ${roomName}`;
+
+        roomSelect.style.display="none";
+
+        gameArea.style.display="block";
+
+    }
+    catch(error){
+
+        alert(
+            "接続エラー\n"
+            + error.message
+        );
+
+    }
+
+}
+
+window.addEventListener(
+    "beforeunload",
+    ()=>{
+
+        if(!currentRoom) return;
+
+        set(
+            ref(
+                db,
+                `rooms/room${currentRoom}/gameConnected`
+            ),
+            false
+        );
+
+    }
+);
 
 const canvas=document.getElementById("game");
 const ctx=canvas.getContext("2d");
