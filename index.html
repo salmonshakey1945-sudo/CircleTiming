@@ -285,6 +285,37 @@ async function selectRoom(roomName){
 
         gameArea.style.display="block";
 
+        onValue(
+    ref(
+        db,
+        `rooms/${roomName}/gameConnected`
+    ),
+    snapshot=>{
+
+        const connected =
+            snapshot.val();
+
+        if(
+            connected===false
+        ){
+
+            alert(
+                "接続が解除されました"
+            );
+
+            currentRoom=null;
+
+            roomSelect.style.display=
+                "block";
+
+            gameArea.style.display=
+                "none";
+
+        }
+
+    }
+);
+
     }
     catch(error){
 

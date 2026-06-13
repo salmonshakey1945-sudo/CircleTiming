@@ -315,6 +315,37 @@ async function selectRoom(roomName){
 
         container.style.display="block";
 
+        onValue(
+    ref(
+        db,
+        `rooms/${roomName}/adminConnected`
+    ),
+    snapshot=>{
+
+        const connected =
+            snapshot.val();
+
+        if(
+            connected===false
+        ){
+
+            alert(
+                "接続が解除されました"
+            );
+
+            currentRoom=null;
+
+            roomSelect.style.display=
+                "block";
+
+            container.style.display=
+                "none";
+
+        }
+
+    }
+);
+
     }
     catch(error){
 

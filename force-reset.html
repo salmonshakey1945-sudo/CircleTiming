@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>緊急Room解除</title>
+
+<style>
+
+body{
+    margin:0;
+    background:#111;
+    color:white;
+    font-family:sans-serif;
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+    height:100vh;
+}
+
+#container{
+    text-align:center;
+}
+
+button{
+
+    width:260px;
+    height:70px;
+
+    font-size:24px;
+
+    border:none;
+
+    background:white;
+    color:black;
+
+    cursor:pointer;
+
+    transition:.2s;
+}
+
+button:hover{
+    filter:brightness(1.1);
+}
+
+#status{
+    margin-top:30px;
+    font-size:24px;
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="container">
+
+    <button id="resetAllBtn">
+        全Room接続解除
+    </button>
+
+    <div id="status"></div>
+
+</div>
+
+<script type="module">
+
+import { initializeApp }
+from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+
+import {
+    getDatabase,
+    ref,
+    set
+}
+from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
+
+const firebaseConfig = {
+
+    apiKey: "あなたのapiKey",
+
+    authDomain:
+    "circletiming-b09f7.firebaseapp.com",
+
+    databaseURL:
+    "https://circletiming-b09f7-default-rtdb.asia-southeast1.firebasedatabase.app",
+
+    projectId:
+    "circletiming-b09f7",
+
+    storageBucket:
+    "circletiming-b09f7.firebasestorage.app",
+
+    messagingSenderId:
+    "998413886850",
+
+    appId:
+    "1:998413886850:web:465720573ba614d6e95b9b"
+
+};
+
+const app =
+    initializeApp(firebaseConfig);
+
+const db =
+    getDatabase(app);
+
+const status =
+    document.getElementById("status");
+
+let statusTimer;
+
+document
+.getElementById("resetAllBtn")
+.addEventListener(
+    "click",
+    async ()=>{
+
+        const first=
+            confirm(
+                "全Room接続を解除しますか？"
+            );
+
+        if(!first) return;
+
+        const second=
+            confirm(
+                "本当に実行しますか？"
+            );
+
+        if(!second) return;
+
+        try{
+
+            for(let i=1;i<=5;i++){
+
+                await set(
+                    ref(
+                        db,
+                        `rooms/room${i}/adminConnected`
+                    ),
+                    false
+                );
+
+                await set(
+                    ref(
+                        db,
+                        `rooms/room${i}/gameConnected`
+                    ),
+                    false
+                );
+
+            }
+
+            status.textContent=
+    "全Room解除完了";
+
+clearTimeout(statusTimer);
+
+statusTimer=setTimeout(()=>{
+
+    status.textContent="";
+
+},2000);
+
+        }
+        catch(error){
+
+    status.textContent=
+        "エラー : "
+        + error.message;
+
+    clearTimeout(statusTimer);
+
+    statusTimer=setTimeout(()=>{
+
+        status.textContent="";
+
+    },3000);
+
+}
+    }
+);
+
+</script>
+
+</body>
+</html>

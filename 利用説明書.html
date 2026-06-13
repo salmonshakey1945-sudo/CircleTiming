@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>CircleTiming 利用説明書</title>
+
+<style>
+body{
+    margin:0;
+    padding:0;
+    background:#f0f2f5;
+    font-family:Arial, sans-serif;
+    color:#222;
+    line-height:1.8;
+}
+
+.container{
+    max-width:1000px;
+    margin:40px auto;
+    background:white;
+    padding:40px;
+    border-radius:14px;
+    box-shadow:0 2px 10px rgba(0,0,0,0.1);
+}
+
+h1{
+    text-align:center;
+    border-bottom:3px solid #999;
+    padding-bottom:15px;
+}
+
+h2{
+    margin-top:50px;
+    border-left:8px solid #666;
+    padding-left:12px;
+}
+
+h3{
+    margin-top:30px;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:15px;
+}
+
+th,td{
+    border:1px solid #bbb;
+    padding:12px;
+}
+
+th{
+    background:#ddd;
+}
+
+.flow{
+    background:#f8f8f8;
+    padding:20px;
+    border-radius:10px;
+    margin-top:20px;
+}
+
+.box{
+    background:#fafafa;
+    border:1px solid #ccc;
+    border-radius:10px;
+    padding:15px;
+    margin-top:15px;
+}
+
+.arrow{
+    text-align:center;
+    font-size:28px;
+    margin:10px 0;
+}
+
+.note{
+    background:#fff8d9;
+    border-left:6px solid #e0c200;
+    padding:12px;
+    margin-top:15px;
+}
+</style>
+
+</head>
+<body>
+
+<div class="container">
+
+<h1>CircleTiming 利用説明書</h1>
+
+<h2>1. CircleTimingとは</h2>
+
+<p>
+CircleTiming は、タイミングに合わせて入力を行うゲームです。<br>
+円の動きに合わせて、タップやクリックを行い、修理ゲージMAXを目指します。
+</p>
+
+<h2>2. 操作方法</h2>
+
+<table>
+<tr>
+<th>ファイル名</th>
+<th>役割</th>
+</tr>
+
+<tr>
+<td><b>index.html</b></td>
+<td>
+ゲームを遊ぶ画面です。<br>
+プレイヤーが使用します。<br>
+タップまたはクリックで操作します。
+</td>
+</tr>
+
+<tr>
+<td><b>admin.html</b></td>
+<td>
+ゲームをリセットする画面です。<br>
+管理者が使用します。
+</td>
+</tr>
+
+<tr>
+<td><b>force-reset.html</b></td>
+<td>
+全員の接続を解除する画面です。<br>
+通信異常やトラブル時に使用します。<br>
+使用すると全員がRoom選択画面へ戻ります。
+</td>
+</tr>
+</table>
+
+<h3>■ Roomについて</h3>
+
+<div class="box">
+<p>
+Roomは「遊ぶ場所」を分けるための番号です。<br>
+プレイヤーと管理者は同じRoom番号を選びます。<br>
+同じRoom番号同士でゲームが動きます。
+</p>
+
+<table>
+<tr>
+<th>接続枠</th>
+<th>接続可能数</th>
+</tr>
+
+<tr>
+<td>プレイ用（index.html）</td>
+<td>1台まで</td>
+</tr>
+
+<tr>
+<td>管理用（admin.html）</td>
+<td>1台まで</td>
+</tr>
+</table>
+
+<p>
+1つのRoomには合計2台まで接続できます。
+</p>
+
+<div class="note">
+例：<br>
+index.html を1台接続<br>
+admin.html を1台接続
+</div>
+
+</div>
+
+<h3>■ 基本操作</h3>
+
+<ul>
+<li>円のタイミングに合わせて入力します</li>
+<li>スマホではタップ</li>
+<li>PCではクリックで操作します</li>
+</ul>
+
+<h2>3. プレイの流れ</h2>
+
+<div class="flow">
+
+<div class="box">
+<b>① Roomを選ぶ</b><br>
+プレイヤーと管理者で同じRoom番号を選択します
+</div>
+
+<div class="arrow">↓</div>
+
+<div class="box">
+<b>② ゲーム開始</b><br>
+ゲーム画面が表示されます
+</div>
+
+<div class="arrow">↓</div>
+
+<div class="box">
+<b>③ タイミングに合わせて入力</b><br>
+円の動きに合わせてタップまたはクリックします
+</div>
+
+<div class="arrow">↓</div>
+
+<div class="box">
+<b>④ 判定が表示される</b><br>
+Perfect / Good / Miss が表示されます
+</div>
+
+<div class="arrow">↓</div>
+
+<div class="box">
+<b>⑤ 修理ゲージが変化</b><br>
+Perfect → 修理ゲージ増加<br>
+Good → 変化なし<br>
+Miss → 修理ゲージ減少
+</div>
+
+<div class="arrow">↓</div>
+
+<div class="box">
+<b>⑥ 修理ゲージMAXでゲーム終了</b><br>
+ゲームクリアになります
+</div>
+
+</div>
+
+<h2>4. 判定・終了条件</h2>
+
+<table>
+<tr>
+<th>判定</th>
+<th>内容</th>
+</tr>
+
+<tr>
+<td><b>Perfect</b></td>
+<td>大成功。修理ゲージが増えます。</td>
+</tr>
+
+<tr>
+<td><b>Good</b></td>
+<td>成功。修理ゲージは変化しません。</td>
+</tr>
+
+<tr>
+<td><b>Miss</b></td>
+<td>失敗。修理ゲージが減ります。</td>
+</tr>
+</table>
+
+<div class="note">
+修理ゲージがMAXになるとゲーム終了です。
+</div>
+
+<h2>5. 注意事項・トラブル</h2>
+
+<div class="box">
+<h3>■ 通信について</h3>
+<ul>
+<li>インターネット通信を使用します</li>
+<li>通信状況によって反応が遅れる場合があります</li>
+</ul>
+</div>
+
+<div class="box">
+<h3>■ ページを再読み込みした場合</h3>
+<ul>
+<li>接続が解除される場合があります</li>
+<li>その場合は再度Roomを選択してください</li>
+</ul>
+</div>
+
+<div class="box">
+<h3>■ 接続できない場合</h3>
+<ul>
+<li>すでに同じRoomが使用中の可能性があります</li>
+<li>別のRoomを選択してください</li>
+<li>ページを再読み込みすると改善する場合があります</li>
+</ul>
+</div>
+
+<div class="box">
+<h3>■ force-reset.htmlについて</h3>
+<ul>
+<li>全員をRoom選択画面へ戻します</li>
+<li>通信異常時に使用します</li>
+<li>使用するとプレイ中のゲームも終了します</li>
+</ul>
+</div>
+
+<div class="box">
+<h3>■ 管理画面について</h3>
+<ul>
+<li>admin.html と force-reset.html は管理者用です</li>
+<li>プレイヤーは通常使用しません</li>
+</ul>
+</div>
+
+</div>
+
+</body>
+</html>
