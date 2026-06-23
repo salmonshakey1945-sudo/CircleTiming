@@ -164,6 +164,8 @@ const gameArea =
 
 let room = "1";
 
+let gameEnabled = false;
+
 function createRoomList(rooms){
 
     roomList.innerHTML="";
@@ -285,6 +287,8 @@ async function selectRoom(roomName){
 
         gameArea.style.display="block";
 
+        gameEnabled = true;
+
         onValue(
     ref(
         db,
@@ -303,13 +307,15 @@ async function selectRoom(roomName){
                 "接続が解除されました"
             );
 
-            currentRoom=null;
+            gameEnabled=false;
 
-            roomSelect.style.display=
-                "block";
+currentRoom=null;
 
-            gameArea.style.display=
-                "none";
+roomSelect.style.display=
+    "block";
+
+gameArea.style.display=
+    "none";
 
         }
 
@@ -406,6 +412,8 @@ function unlockAudio(){
 }
 
 function startGame(){
+
+    if(!gameEnabled) return;
 
     if(gameStarted) return;
 
@@ -707,6 +715,8 @@ resultTimer=1;
 ========================= */
 
 function handleInput(){
+
+    if(!gameEnabled) return;
 
     if(!timingActive) return;
 
