@@ -442,9 +442,7 @@ let SETTINGS={
 
     zoneStart:45,
 
-    normalWidth:55,
-
-    perfectWidth:15
+    perfectWidth:55
 
 };
 
@@ -456,19 +454,7 @@ let particles=[];
    修理ゲージ設定
 ========================= */
 
-let repairProgress=0;
-
-const averageFiveEventTime=30;
-
-const repairSpeed=(100*(5/6))/averageFiveEventTime;
-
-const perfectBonus=5;
-
-const missPenalty=5;
-
-const EVENT_INTERVAL_MIN = 2;
-
-const EVENT_INTERVAL_MAX = 6;
+let successCount=0;
 
 /* =========================
    イベント管理
@@ -490,7 +476,7 @@ let eventCooldown=0;
 
 let resultTimer=0;
 
-let nextEventTime=randomEventInterval();
+let nextEventTime=5;
 
 let audioUnlocked=false;
 
@@ -504,20 +490,9 @@ SE.max.addEventListener("ended",()=>{
 
 });
 
-function randomEventInterval(){
-
-    return EVENT_INTERVAL_MIN
-        + Math.random()
-        * (
-            EVENT_INTERVAL_MAX
-            - EVENT_INTERVAL_MIN
-        );
-
-}
-
 function randomPointerSpeed(){
 
-    return 180 + Math.random()*360;
+    return 180 + Math.random()*220;
 
 }
 
@@ -528,7 +503,7 @@ function startTimingEvent(){
         || gameFinished
         || electricityActive
         || maxSoundPending
-        || repairProgress >= 100
+        || successCount >= 3
     ) return;
 
     timingActive=true;
@@ -553,9 +528,9 @@ function endTimingEvent(){
 
     result.textContent="";
 
-    eventCooldown=1.2;
+    eventCooldown=0;
 
-    nextEventTime=randomEventInterval();
+    nextEventTime=3;
 
 }
 
@@ -619,13 +594,11 @@ function judge(){
 
     let perfectStart;
     let perfectEnd;
-    let normalEnd;
 
     if(SETTINGS.clockwise){
 
         perfectStart=SETTINGS.zoneStart;
         perfectEnd=SETTINGS.zoneStart+SETTINGS.perfectWidth;
-        normalEnd=SETTINGS.zoneStart+SETTINGS.normalWidth;
 
     }
     else{
@@ -637,10 +610,6 @@ function judge(){
         perfectEnd=
             SETTINGS.zoneStart;
 
-        normalEnd=
-            SETTINGS.zoneStart
-            - SETTINGS.normalWidth;
-
     }
 
     if(inRange(p,perfectStart,perfectEnd)){
@@ -651,11 +620,11 @@ function judge(){
 
         spawnEffect("perfect");
 
-        repairProgress+=perfectBonus;
+        successCount++;
 
-if(repairProgress>=100){
+if(successCount>=3){
 
-    repairProgress=100;
+    successCount=3;
 
     timingActive=false;
     resultFreeze=false;
@@ -670,21 +639,6 @@ if(repairProgress>=100){
 }
 
     }
-    else if(
-        inRange(
-            p,
-            SETTINGS.zoneStart,
-            normalEnd
-        )
-    ){
-
-        result.textContent="GOOD";
-
-        playSE("good");
-
-        spawnEffect("good");
-
-    }
     else{
 
         result.textContent="MISS";
@@ -692,11 +646,6 @@ if(repairProgress>=100){
         playSE("miss");
 
         spawnEffect("miss");
-
-        repairProgress-=missPenalty;
-
-        if(repairProgress<0)
-            repairProgress=0;
 
     }
 
@@ -838,36 +787,12 @@ function draw(){
         canvas.height
     );
 
-    /* 修理ゲージ */
+    /* 成功回数表示 */
 
-    ctx.fillStyle="#333";
-
-    ctx.fillRect(
-        100,
-        620,
-        500,
-        28
-    );
-
-    ctx.fillStyle="#3498db";
-
-    ctx.fillRect(
-        100,
-        620,
-        500*(repairProgress/100),
-        28
-    );
-
-    ctx.strokeStyle="#888";
-
-    ctx.lineWidth=3;
-
-    ctx.strokeRect(
-        100,
-        620,
-        500,
-        28
-    );
+    ctx.fillStyle="white";
+    ctx.font="32px sans-serif";
+    ctx.textAlign="center";
+    ctx.fillText(`成功 ${successCount}/3`, centerX, 640);
 
     /* イベント時のみ表示 */
 
@@ -893,12 +818,6 @@ function draw(){
 
             drawArc(
                 SETTINGS.zoneStart,
-                SETTINGS.normalWidth,
-                "#2ecc71"
-            );
-
-            drawArc(
-                SETTINGS.zoneStart,
                 SETTINGS.perfectWidth,
                 "#f1c40f",
                 34
@@ -906,15 +825,6 @@ function draw(){
 
         }
         else{
-
-            drawArc(
-                SETTINGS.zoneStart
-                - SETTINGS.normalWidth,
-
-                SETTINGS.normalWidth,
-
-                "#2ecc71"
-            );
 
             drawArc(
                 SETTINGS.zoneStart
@@ -1074,52 +984,7 @@ function update(now){
 
     elapsedTime+=deltaTime;
 
-    /* 通常修理 */
-
-    if(
-    gameStarted
-    &&
-    !gameFinished
-    &&
-    (
-        !timingActive
-        ||
-        resultFreeze
-    )
-){
-
-    repairProgress+=
-        repairSpeed
-        *deltaTime;
-
-   if(
-    repairProgress>=100
-    &&
-    !electricityActive
-    &&
-    !gameFinished
-    &&
-    !maxSoundPending
-){
-
-    repairProgress=100;
-
-    timingActive=false;
-    resultFreeze=false;
-    result.textContent="";
-
-    maxSoundPending=true;
-
-    maxSoundFinished=false;
-
-    playSE("max");
-
-}
-
-}
-
-    if(repairProgress>100)
-        repairProgress=100;
+    /* 通常修理廃止 */
 
     /* イベントクールダウン */
 
@@ -1131,7 +996,7 @@ function update(now){
 
     /* ランダムイベント */
 
-    /* ランダムイベント */
+    /* イベント発生 */
 
 if(
     gameStarted
@@ -1142,7 +1007,7 @@ if(
     &&
     !maxSoundPending
     &&
-    repairProgress < 100
+    successCount < 3
 ){
 
     nextEventTime-=deltaTime;
@@ -1233,7 +1098,7 @@ if(electricityActive){
 
     function resetGame(){
 
-    repairProgress=0;
+    successCount=0;
 
     timingActive=false;
 
@@ -1251,7 +1116,7 @@ if(electricityActive){
 
     resultTimer=0;
 
-    nextEventTime=randomEventInterval();
+    nextEventTime=5;
 
     pointerAngle=0;
 
