@@ -482,14 +482,6 @@ let audioUnlocked=false;
 
 let maxSoundPending=false;
 
-let maxSoundFinished=false;
-
-SE.max.addEventListener("ended",()=>{
-
-    maxSoundFinished=true;
-
-});
-
 function randomPointerSpeed(){
 
     return 180 + Math.random()*220;
@@ -614,31 +606,27 @@ function judge(){
 
     if(inRange(p,perfectStart,perfectEnd)){
 
-        result.textContent="PERFECT";
+    successCount++;
 
-        playSE("perfect");
+    result.textContent="PERFECT";
 
-        spawnEffect("perfect");
+    spawnEffect("perfect");
 
-        successCount++;
+    if(successCount>=3){
 
-if(successCount>=3){
+        successCount=3;
 
-    successCount=3;
+        timingActive=false;
+        resultFreeze=false;
+        result.textContent="";
 
-    timingActive=false;
-    resultFreeze=false;
-    result.textContent="";
+        maxSoundPending=true;
 
-    maxSoundPending=true;
-    maxSoundFinished=false;
-
-    playSE("max");
-
-    return;
-}
-
+        return;
     }
+
+    playSE("perfect");
+}
     else{
 
         result.textContent="MISS";
@@ -1066,7 +1054,7 @@ if(
 
 }
 
-if(maxSoundPending && maxSoundFinished){
+if(maxSoundPending){
 
     maxSoundPending=false;
 
@@ -1078,6 +1066,7 @@ if(maxSoundPending && maxSoundFinished){
 
     electricityTimer=1.5;
 
+    playSE("max");
 }
 
 if(electricityActive){
@@ -1123,8 +1112,6 @@ if(electricityActive){
     particles=[];
 
     maxSoundPending=false;
-
-    maxSoundFinished=false;
 
     result.textContent="";
 
